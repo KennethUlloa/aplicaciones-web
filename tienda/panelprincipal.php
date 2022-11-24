@@ -36,6 +36,7 @@
     //Verificación de existencia de la sesión si viene por GET
     if(!isset($_SESSION["sesionNombre"]) && !isset($_SESSION["sessionClave"])){ //Si no hay sesión
         header('Location: index.php'); //Chao 
+        exit; 
     }
 
     $lang = "es"; //Idioma por defecto
@@ -45,20 +46,33 @@
     
     */
 
-    if($isLogIn && !$recordar){ 
+    $CookieRecordarSet = isset($_COOKIE["cookieRecordar"]);
+    $CookieIdiomaSet = isset($_COOKIE["cookieIdioma"]);
+    $LangParameterSet = isset($_GET["lang"]);
+
+    if($isLogIn && !$recordar){ //Primer log in sin recordar (se evita el uso de la cookie)
+
         $lang = "es";
-    }else if(isset($_GET["lang"])){ //Me mandaron un parámetro de cookie
-        $lang = ($_GET["lang"] == "en")? "en" : "es";
-        if(isset($_COOKIE["cookieRecordar"])){
-            if($_COOKIE["cookieRecordar"] == "on"){
-                setcookie("cookieIdioma", $lang);
+
+    }else if($LangParameterSet){ //Me mandaron un parámetro de idioma
+
+        $lang = ($_GET["lang"] == "en")? "en" : "es"; //Actualizo el parámetro actual
+
+        if($CookieRecordarSet){ //Si se encuentra con la cookie para recordar datos
+
+            if($_COOKIE["cookieRecordar"] == "on"){ //Verifica que su contenido sea on
+                setcookie("cookieIdioma", $lang); //Se guarda en la cookie la selección actual
             }  
+
         }else {
-            setcookie("cookieIdioma", "");
+            setcookie("cookieIdioma", ""); //Se elimina la cookie de idioma
         }
-    }else if(isset($_COOKIE["cookieRecordar"])) {
-        if(isset($_COOKIE["cookieIdioma"])) {
-            $lang = ($_COOKIE["cookieIdioma"] == "en")? "en" : "es";
+    }else if($CookieRecordarSet) { //Si la cookie para recordar datos existe
+
+        if($CookieIdiomaSet) {
+
+            $lang = ($_COOKIE["cookieIdioma"] == "en")? "en" : "es"; 
+
         }
     } 
     //Si el usuario no seleccionó la preferencia de idioma y no existen cookies, se toma por defecto el español;
