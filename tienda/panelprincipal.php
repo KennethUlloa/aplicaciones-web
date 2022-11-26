@@ -2,81 +2,63 @@
     //Verifico que los datos tengan las claves que necesito
     //Inicialización de la sesión
     session_start();
-    $nombreUsuario = "";
-    $claveUsuario = "";
-    $recordar = false;
-    $isLogIn = false;
+
+    $lang = "es"; //Idioma por defecto
 
     if(isset($_POST["nombre_usuario"], $_POST["clave_usuario"])){ //Si se envió la peitición por POST (se intenta crear una nueva sesión)
         $nombreUsuario = $_POST["nombre_usuario"];
         $claveUsuario = $_POST["clave_usuario"];
-        $isLogIn = true;
 
         $_SESSION["sesionNombre"] = $nombreUsuario;
-        $_SESSION["sessionClave"] = $claveUsuario;
+        $_SESSION["sesionClave"] = $claveUsuario;
 
-        //Creación de cookies
-        if(isset($_POST["recordar_sesion"] )){ //Se seleccionó la opción de recordar
-            $recordar = ($_POST["recordar_sesion"] == "on")? true : false; 
-            
-        }
-        
-        if($recordar){ //Si seleccionó la opción recordar se crean las cookies
-            setcookie("cookieNombre", $nombreUsuario);
-            setcookie("cookieClave", $claveUsuario);
-            setcookie("cookieRecordar", "on");
-        }else { //caso contrario destruyo las cookies guardadas
+        if(isset($_POST["recordar_sesion"])){ //Debería recordar
+            $_SESSION["sesionRecordar"] = true;
+            //Envío las cookies creadas 8duración de 24h)
+            setcookie("cookieNombre", $nombreUsuario, (time() + 60 * 60 * 24));
+            setcookie("cookieClave", $claveUsuario, (time() + 60 * 60 * 24));
+            setcookie("cookieRecordar", "on", (time() + 60 * 60 * 24));
+        }else{
+            /*
+            * En caso de que existan cookies (una sesión anterior) y no quiero recordar nada,
+            * instruyo al navegador a destruir las cookies después de recibir esta respuesta
+            */
             setcookie("cookieNombre", "");
             setcookie("cookieClave", "");
             setcookie("cookieRecordar", "");
-            setcookie("cookieIdioma", "");
         }
     }
 
     //Verificación de existencia de la sesión si viene por GET
-    if(!isset($_SESSION["sesionNombre"]) && !isset($_SESSION["sessionClave"])){ //Si no hay sesión
+    if(!isset($_SESSION["sesionNombre"]) && !isset($_SESSION["sesionClave"])){ //Si no hay sesión
         header('Location: index.php'); //Chao 
         exit; 
     }
 
-    $lang = "es"; //Idioma por defecto
-    /*
-    Si es el login y no necesito recordar información, por ende
-    obvio todas las condiciones futuras
+    //Me vino un parametro de query con la selección de idioma
+    if(isset($_GET["lang"])){
+        $_SESSION["sesionIdioma"] = ($_GET["lang"] == "en")? "en" : "es";
+    }
+
+    //Existe un idioma seleccionado en la sesión
+    if(isset($_SESSION["sesionIdioma"])){ 
+        $lang = $_SESSION["sesionIdioma"]; 
+    }else{
+        $_SESSION["sesionIdioma"] = $lang; //Idioma por defecto
+    }
+
+    //Tengo una cookie y no me vino como query
+    if(isset($_COOKIE["cookieIdioma"]) && !isset($_GET["lang"])) { 
+        $_SESSION["sesionIdioma"] = ($_COOKIE["cookieIdioma"] == "en")? "en" : "es";
+        $lang = $_SESSION["sesionIdioma"]; 
+    }
+
+    //Envío la preferencia actual de idioma
+    setcookie("cookieIdioma", $_SESSION["sesionIdioma"], (time() + 60 * 60 * 24)); //Envío la cookie del idioma actual
     
-    */
 
-    $CookieRecordarSet = isset($_COOKIE["cookieRecordar"]);
-    $CookieIdiomaSet = isset($_COOKIE["cookieIdioma"]);
-    $LangParameterSet = isset($_GET["lang"]);
-
-    if($isLogIn && !$recordar){ //Primer log in sin recordar (se evita el uso de la cookie)
-
-        $lang = "es";
-
-    }else if($LangParameterSet){ //Me mandaron un parámetro de idioma
-
-        $lang = ($_GET["lang"] == "en")? "en" : "es"; //Actualizo el parámetro actual
-
-        if($CookieRecordarSet){ //Si se encuentra con la cookie para recordar datos
-
-            if($_COOKIE["cookieRecordar"] == "on"){ //Verifica que su contenido sea on
-                setcookie("cookieIdioma", $lang); //Se guarda en la cookie la selección actual
-            }  
-
-        }else {
-            setcookie("cookieIdioma", ""); //Se elimina la cookie de idioma
-        }
-    }else if($CookieRecordarSet) { //Si la cookie para recordar datos existe
-
-        if($CookieIdiomaSet) {
-
-            $lang = ($_COOKIE["cookieIdioma"] == "en")? "en" : "es"; 
-
-        }
-    } 
-    //Si el usuario no seleccionó la preferencia de idioma y no existen cookies, se toma por defecto el español;
-    $files = array("es" => "categorias_es.txt", "en" => "categorias_en.txt");
+    //Archivos en un arreglo para reusabilidad del algoritmo de lectura e impresión
+    $files = array("es" => "categorias_es.txt", "en" => "categorias_en.txt"); 
     $titles = array("es" => "Lista de Productos", "en" => "Product List");
 
     $selected_file = $files[$lang];
@@ -95,15 +77,15 @@
         <br>
         <?php 
 
-            echo "<h2>" . $selected_title . "</h2>";
+            echo "<h2>$selected_title</h2>";
 
             $fp = fopen($selected_file, "r"); //Se abre el recurso de archivo
             
             while(!feof($fp)){ //Hasta no encontrar el fin de archivo
-                $curr_line = fgets($fp); //Obtenemos la línea correspondiente
-                echo $curr_line . "<br>"; //Imprimo la línea
+                $curr_line = fgets($fp); //Se obtiene la línea correspondiente
+                echo "$curr_line<br>"; //Se imprime la línea
             }
-            //Cerrar el archivo
+            //Se cierra el archivo
             fclose($fp);
         ?>
     </body>
