@@ -1,4 +1,4 @@
-# aplicaciones-web
+# Aplicaciones Web
 Repositorio para la materia de **Aplicaciones Web**
 ## Estudiante
 Kenneth Ulloa
